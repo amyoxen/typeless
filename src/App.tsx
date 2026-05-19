@@ -42,6 +42,10 @@ export function App() {
   const [error, setError] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [autoPaste, setAutoPaste] = useState(true);
+  const [shortcutInfo, setShortcutInfo] = useState({
+    shortcut: "Ctrl+Shift+Space",
+    registered: true
+  });
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -194,6 +198,16 @@ export function App() {
 
   useEffect(() => {
     if (!api) return;
+    void api.getShortcut().then((info) => {
+      setShortcutInfo({
+        shortcut: info.shortcut.replace("CommandOrControl", "Ctrl"),
+        registered: info.registered
+      });
+    });
+  }, [api]);
+
+  useEffect(() => {
+    if (!api) return;
     return api.onToggleRecording(toggleRecording);
   }, [api, toggleRecording]);
 
@@ -235,7 +249,9 @@ export function App() {
             {isRecording ? <MicOff size={34} /> : <Mic size={34} />}
           </button>
 
-          <div className="shortcut">Ctrl + Shift + Space</div>
+          <div className={`shortcut ${shortcutInfo.registered ? "" : "shortcut-error"}`}>
+            {shortcutInfo.registered ? shortcutInfo.shortcut.replaceAll("+", " + ") : "Hotkey unavailable"}
+          </div>
 
           <label className="toggle-row" htmlFor="autoPaste">
             <input

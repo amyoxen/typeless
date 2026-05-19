@@ -163,6 +163,12 @@ h2 {
   padding: 8px 12px;
 }
 
+.shortcut-error {
+  background: #fff1ed;
+  border-color: #ffb8a8;
+  color: var(--red);
+}
+
 .toggle-row {
   align-items: center;
   background: #fffdf8;

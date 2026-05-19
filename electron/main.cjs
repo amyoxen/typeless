@@ -6,6 +6,14 @@ const fs = require("node:fs");
 const devUrl = process.env.VOICECRAFT_DEV_SERVER_URL;
 const isDev = Boolean(devUrl);
 let mainWindow;
+let isQuitting = false;
+let registeredShortcut = "";
+
+const shortcutCandidates = [
+  process.env.VOICECRAFT_HOTKEY,
+  "CommandOrControl+Shift+Space",
+  "CommandOrControl+Alt+Space"
+].filter(Boolean);
 
 function loadEnvFile() {
   const envPath = path.join(process.cwd(), ".env");
@@ -46,14 +54,50 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  win.on("close", (event) => {
+    if (isQuitting) return;
+    event.preventDefault();
+    win.hide();
+  });
+
   return win;
 }
 
 function showDictationWindow() {
   if (!mainWindow) return;
+  if (mainWindow.isDestroyed()) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
+}
+
+function sendToggleRecording() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    mainWindow = createWindow();
+  }
+
+  showDictationWindow();
+
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once("did-finish-load", () => {
+      mainWindow?.webContents.send("voicecraft:toggle-recording");
+    });
+    return;
+  }
+
+  mainWindow.webContents.send("voicecraft:toggle-recording");
+}
+
+function registerDictationShortcut() {
+  for (const shortcut of shortcutCandidates) {
+    const registered = globalShortcut.register(shortcut, sendToggleRecording);
+    if (registered) {
+      registeredShortcut = shortcut;
+      return;
+    }
+  }
+
+  registeredShortcut = "";
 }
 
 function assertOpenAiKey() {
@@ -146,6 +190,13 @@ ipcMain.handle("voicecraft:copy", (_event, text) => {
   return { ok: true };
 });
 
+ipcMain.handle("voicecraft:get-shortcut", () => {
+  return {
+    shortcut: registeredShortcut,
+    registered: Boolean(registeredShortcut)
+  };
+});
+
 ipcMain.handle("voicecraft:paste-into-active-app", async (_event, text) => {
   clipboard.writeText(text || "");
   mainWindow?.hide();
@@ -173,11 +224,7 @@ ipcMain.handle("voicecraft:paste-into-active-app", async (_event, text) => {
 app.whenReady().then(() => {
   loadEnvFile();
   mainWindow = createWindow();
-
-  globalShortcut.register("CommandOrControl+Shift+Space", () => {
-    showDictationWindow();
-    mainWindow.webContents.send("voicecraft:toggle-recording");
-  });
+  registerDictationShortcut();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -189,9 +236,10 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  if (process.platform === "darwin") return;
 });
 
 app.on("will-quit", () => {
+  isQuitting = true;
   globalShortcut.unregisterAll();
 });

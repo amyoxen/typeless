@@ -12,6 +12,7 @@ type VoicecraftApi = {
     vocabulary: string;
   }) => Promise<{ text: string }>;
   copy: (text: string) => Promise<{ ok: boolean }>;
+  getShortcut: () => Promise<{ shortcut: string; registered: boolean }>;
   pasteIntoActiveApp: (text: string) => Promise<{ ok: boolean }>;
   onToggleRecording: (callback: () => void) => () => void;
 };
