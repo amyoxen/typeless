@@ -1,9 +1,11 @@
 const { app, BrowserWindow, clipboard, globalShortcut, ipcMain } = require("electron");
+const { execFile } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
 
 const devUrl = process.env.VOICECRAFT_DEV_SERVER_URL;
 const isDev = Boolean(devUrl);
+let mainWindow;
 
 function loadEnvFile() {
   const envPath = path.join(process.cwd(), ".env");
@@ -22,12 +24,14 @@ function loadEnvFile() {
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1120,
-    height: 780,
-    minWidth: 900,
-    minHeight: 650,
+    width: 560,
+    height: 680,
+    minWidth: 480,
+    minHeight: 560,
     backgroundColor: "#f7f2ea",
     title: "VoiceCraft Dictation",
+    alwaysOnTop: true,
+    skipTaskbar: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -43,6 +47,13 @@ function createWindow() {
   }
 
   return win;
+}
+
+function showDictationWindow() {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 function assertOpenAiKey() {
@@ -135,16 +146,45 @@ ipcMain.handle("voicecraft:copy", (_event, text) => {
   return { ok: true };
 });
 
+ipcMain.handle("voicecraft:paste-into-active-app", async (_event, text) => {
+  clipboard.writeText(text || "");
+  mainWindow?.hide();
+
+  await new Promise((resolve, reject) => {
+    const command = [
+      "$ws = New-Object -ComObject WScript.Shell",
+      "Start-Sleep -Milliseconds 180",
+      "$ws.SendKeys('^v')"
+    ].join("; ");
+
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+      (error) => {
+        if (error) reject(error);
+        else resolve();
+      }
+    );
+  });
+
+  return { ok: true };
+});
+
 app.whenReady().then(() => {
   loadEnvFile();
-  const win = createWindow();
+  mainWindow = createWindow();
 
   globalShortcut.register("CommandOrControl+Shift+Space", () => {
-    win.webContents.send("voicecraft:toggle-recording");
+    showDictationWindow();
+    mainWindow.webContents.send("voicecraft:toggle-recording");
   });
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      mainWindow = createWindow();
+    } else {
+      showDictationWindow();
+    }
   });
 });
 

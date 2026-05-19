@@ -47,14 +47,14 @@ button:disabled {
 
 .app-shell {
   min-height: 100vh;
-  padding: 28px;
+  padding: 18px;
 }
 
 .topbar {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  margin: 0 auto 22px;
+  margin: 0 auto 16px;
   max-width: 1180px;
 }
 
@@ -75,7 +75,7 @@ h2 {
 
 h1 {
   color: var(--ink);
-  font-size: 2.3rem;
+  font-size: 1.8rem;
   line-height: 1;
 }
 
@@ -110,8 +110,8 @@ h2 {
 
 .workspace {
   display: grid;
-  gap: 18px;
-  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 14px;
+  grid-template-columns: 1fr;
   margin: 0 auto;
   max-width: 1180px;
 }
@@ -127,8 +127,8 @@ h2 {
 .controls {
   align-content: start;
   display: grid;
-  gap: 20px;
-  padding: 22px;
+  gap: 14px;
+  padding: 18px;
 }
 
 .record-button {
@@ -140,7 +140,7 @@ h2 {
   display: grid;
   justify-self: center;
   place-items: center;
-  width: 138px;
+  width: 118px;
 }
 
 .record-button:hover:not(:disabled) {
@@ -161,6 +161,25 @@ h2 {
   font-weight: 700;
   justify-self: center;
   padding: 8px 12px;
+}
+
+.toggle-row {
+  align-items: center;
+  background: #fffdf8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  display: flex;
+  font-size: 0.9rem;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.toggle-row input {
+  accent-color: var(--accent);
+  height: 17px;
+  width: 17px;
 }
 
 .field-group {
@@ -258,12 +277,12 @@ textarea:focus {
 .text-panel {
   display: grid;
   gap: 12px;
-  min-height: 300px;
-  padding: 18px;
+  min-height: 190px;
+  padding: 14px;
 }
 
 .raw-panel {
-  min-height: 220px;
+  min-height: 160px;
 }
 
 .panel-header {
@@ -283,14 +302,20 @@ textarea:focus {
   flex: 1;
   font-size: 1rem;
   line-height: 1.55;
-  min-height: 180px;
-  padding: 16px;
+  min-height: 120px;
+  padding: 12px;
   width: 100%;
 }
 
 .output.polished {
-  font-size: 1.08rem;
-  min-height: 255px;
+  font-size: 1rem;
+  min-height: 150px;
+}
+
+@media (min-width: 760px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
 }
 
 .spin {
@@ -310,35 +335,6 @@ textarea:focus {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 900px) {
-  .app-shell {
-    padding: 18px;
-  }
-
-  .topbar {
-    align-items: flex-start;
-    gap: 14px;
-  }
-
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .controls {
-    grid-template-columns: minmax(160px, 220px) 1fr;
-  }
-
-  .record-button,
-  .shortcut {
-    grid-column: 1;
-  }
-
-  .field-group,
-  .action-row {
-    grid-column: 2;
   }
 }
 

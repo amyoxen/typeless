@@ -41,6 +41,7 @@ export function App() {
   const [vocabulary, setVocabulary] = useState("");
   const [error, setError] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [autoPaste, setAutoPaste] = useState(true);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -105,6 +106,10 @@ export function App() {
 
       setPolishedText(polished.text);
       setStatus("ready");
+
+      if (autoPaste && polished.text.trim()) {
+        await api.pasteIntoActiveApp(polished.text);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong.");
       setStatus("error");
@@ -231,6 +236,16 @@ export function App() {
           </button>
 
           <div className="shortcut">Ctrl + Shift + Space</div>
+
+          <label className="toggle-row" htmlFor="autoPaste">
+            <input
+              id="autoPaste"
+              checked={autoPaste}
+              onChange={(event) => setAutoPaste(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Paste into active field</span>
+          </label>
 
           <div className="field-group">
             <label htmlFor="tone">Tone</label>
