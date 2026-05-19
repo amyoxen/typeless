@@ -98,6 +98,7 @@ export function App() {
       if (!transcriptText) {
         setPolishedText("");
         setStatus("ready");
+        await api.finishDictationSession();
         return;
       }
 
@@ -113,10 +114,13 @@ export function App() {
 
       if (autoPaste && polished.text.trim()) {
         await api.pasteIntoActiveApp(polished.text);
+      } else {
+        await api.finishDictationSession();
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong.");
       setStatus("error");
+      await api.finishDictationSession();
     } finally {
       stopStream();
     }

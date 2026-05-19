@@ -1,5 +1,5 @@
 const { app, BrowserWindow, clipboard, globalShortcut, ipcMain } = require("electron");
-const { execFile } = require("node:child_process");
+const { execFile, execFileSync } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
 
@@ -8,6 +8,8 @@ const isDev = Boolean(devUrl);
 let mainWindow;
 let isQuitting = false;
 let registeredShortcut = "";
+let dictationSessionActive = false;
+let targetWindowHandle = "";
 
 const shortcutCandidates = [
   process.env.VOICECRAFT_HOTKEY,
@@ -54,6 +56,10 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedUrl) => {
+    console.error(`Failed to load ${validatedUrl}: ${errorCode} ${errorDescription}`);
+  });
+
   win.on("close", (event) => {
     if (isQuitting) return;
     event.preventDefault();
@@ -71,9 +77,34 @@ function showDictationWindow() {
   mainWindow.focus();
 }
 
+function getForegroundWindowHandle() {
+  try {
+    const output = execFileSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Add-Type @'\nusing System;\nusing System.Runtime.InteropServices;\npublic class Win32 {\n  [DllImport(\"user32.dll\")]\n  public static extern IntPtr GetForegroundWindow();\n}\n'@; [Win32]::GetForegroundWindow().ToInt64()"
+      ],
+      { encoding: "utf8", windowsHide: true }
+    );
+
+    return output.trim();
+  } catch {
+    return "";
+  }
+}
+
 function sendToggleRecording() {
   if (!mainWindow || mainWindow.isDestroyed()) {
     mainWindow = createWindow();
+  }
+
+  if (!dictationSessionActive) {
+    targetWindowHandle = getForegroundWindowHandle();
+    dictationSessionActive = true;
   }
 
   showDictationWindow();
@@ -197,21 +228,31 @@ ipcMain.handle("voicecraft:get-shortcut", () => {
   };
 });
 
+ipcMain.handle("voicecraft:finish-dictation-session", () => {
+  dictationSessionActive = false;
+  targetWindowHandle = "";
+  return { ok: true };
+});
+
 ipcMain.handle("voicecraft:paste-into-active-app", async (_event, text) => {
   clipboard.writeText(text || "");
   mainWindow?.hide();
 
   await new Promise((resolve, reject) => {
     const command = [
+      "Add-Type @'\nusing System;\nusing System.Runtime.InteropServices;\npublic class Win32 {\n  [DllImport(\"user32.dll\")]\n  public static extern bool SetForegroundWindow(IntPtr hWnd);\n}\n'@",
+      targetWindowHandle ? `[Win32]::SetForegroundWindow([IntPtr]${targetWindowHandle}) | Out-Null` : "",
       "$ws = New-Object -ComObject WScript.Shell",
-      "Start-Sleep -Milliseconds 180",
+      "Start-Sleep -Milliseconds 260",
       "$ws.SendKeys('^v')"
-    ].join("; ");
+    ].filter(Boolean).join("; ");
 
     execFile(
       "powershell.exe",
       ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
       (error) => {
+        dictationSessionActive = false;
+        targetWindowHandle = "";
         if (error) reject(error);
         else resolve();
       }

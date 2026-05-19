@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("voicecraft", {
   polish: (payload) => ipcRenderer.invoke("voicecraft:polish", payload),
   copy: (text) => ipcRenderer.invoke("voicecraft:copy", text),
   getShortcut: () => ipcRenderer.invoke("voicecraft:get-shortcut"),
+  finishDictationSession: () => ipcRenderer.invoke("voicecraft:finish-dictation-session"),
   pasteIntoActiveApp: (text) => ipcRenderer.invoke("voicecraft:paste-into-active-app", text),
   onToggleRecording: (callback) => {
     const listener = () => callback();
