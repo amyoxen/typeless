@@ -358,12 +358,11 @@ ipcMain.handle("voicecraft:paste-into-active-app", async (_event, text) => {
       "[Win32]::keybd_event(0x11, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)",
       "[Win32]::keybd_event(0x10, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)",
       targetWindowHandle ? `[Win32]::SetForegroundWindow([IntPtr]${targetWindowHandle}) | Out-Null` : "",
-      targetWindowHandle ? `[Win32]::ShowWindow([IntPtr]${targetWindowHandle}, 5) | Out-Null` : "",
-      "$ws = New-Object -ComObject WScript.Shell",
-      "Start-Sleep -Milliseconds 450",
-      "$ws.SendKeys('{ESC}')",
-      "Start-Sleep -Milliseconds 80",
-      "$ws.SendKeys('^v')"
+      "Start-Sleep -Milliseconds 320",
+      "[Win32]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero)",
+      "[Win32]::keybd_event(0x56, 0, 0, [UIntPtr]::Zero)",
+      "[Win32]::keybd_event(0x56, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)",
+      "[Win32]::keybd_event(0x11, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)"
     ].filter(Boolean).join("; ");
 
     execFile(
