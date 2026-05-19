@@ -1,0 +1,26 @@
+{
+  "name": "voicecraft-dictation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Typeless-inspired AI voice dictation desktop app.",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "build": "tsc && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "electron": "electron ."
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "vite": "^7.1.9",
+    "typescript": "^5.9.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "lucide-react": "^0.546.0",
+    "electron": "^38.2.0",
+    "concurrently": "^9.2.1",
+    "wait-on": "^8.0.4"
+  },
+  "devDependencies": {}
+}
