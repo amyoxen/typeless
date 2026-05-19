@@ -6,15 +6,15 @@
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && node scripts/start-electron.cjs\"",
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "electron": "electron ."
+    "electron": "node scripts/start-electron.cjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",
     "concurrently": "^9.2.1",
-    "electron": "^38.2.0",
+    "electron": "^42.1.0",
     "lucide-react": "^0.546.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
