@@ -1,5 +1,5 @@
 const { app, BrowserWindow, clipboard, globalShortcut, ipcMain } = require("electron");
-const { execFile, execFileSync } = require("node:child_process");
+const { execFile, execFileSync, spawn } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
 
@@ -10,6 +10,7 @@ let isQuitting = false;
 let registeredShortcut = "";
 let dictationSessionActive = false;
 let targetWindowHandle = "";
+let leftAltWatcher;
 
 const shortcutCandidates = [
   process.env.VOICECRAFT_HOTKEY,
@@ -120,6 +121,11 @@ function sendToggleRecording() {
 }
 
 function registerDictationShortcut() {
+  if (process.platform === "win32" && startLeftAltWatcher()) {
+    registeredShortcut = "Left Alt";
+    return;
+  }
+
   for (const shortcut of shortcutCandidates) {
     const registered = globalShortcut.register(shortcut, sendToggleRecording);
     if (registered) {
@@ -129,6 +135,58 @@ function registerDictationShortcut() {
   }
 
   registeredShortcut = "";
+}
+
+function startLeftAltWatcher() {
+  if (leftAltWatcher) return true;
+
+  const script = [
+    "Add-Type @'",
+    "using System;",
+    "using System.Runtime.InteropServices;",
+    "public class KeyboardState {",
+    "  [DllImport(\"user32.dll\")]",
+    "  public static extern short GetAsyncKeyState(int vKey);",
+    "}",
+    "'@",
+    "$wasDown = $false",
+    "while ($true) {",
+    "  $isDown = ([KeyboardState]::GetAsyncKeyState(0xA4) -band 0x8000) -ne 0",
+    "  if ($isDown -and -not $wasDown) { Write-Output 'LEFT_ALT'; [Console]::Out.Flush() }",
+    "  $wasDown = $isDown",
+    "  Start-Sleep -Milliseconds 35",
+    "}"
+  ].join("\n");
+
+  try {
+    leftAltWatcher = spawn(
+      "powershell.exe",
+      ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true
+      }
+    );
+
+    leftAltWatcher.stdout.on("data", (chunk) => {
+      const events = chunk.toString("utf8").split(/\r?\n/);
+      if (events.some((event) => event.trim() === "LEFT_ALT")) {
+        sendToggleRecording();
+      }
+    });
+
+    leftAltWatcher.on("exit", () => {
+      leftAltWatcher = undefined;
+      if (registeredShortcut === "Left Alt") {
+        registeredShortcut = "";
+      }
+    });
+
+    return true;
+  } catch {
+    leftAltWatcher = undefined;
+    return false;
+  }
 }
 
 function assertOpenAiKey() {
@@ -282,5 +340,6 @@ app.on("window-all-closed", () => {
 
 app.on("will-quit", () => {
   isQuitting = true;
+  leftAltWatcher?.kill();
   globalShortcut.unregisterAll();
 });

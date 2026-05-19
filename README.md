@@ -5,7 +5,7 @@ A Typeless-inspired desktop dictation app built with Electron, React, and OpenAI
 ## Features
 
 - Record microphone audio from a desktop app
-- Pop up dictation with `Ctrl+Shift+Space`
+- Pop up dictation with the left `Alt` key
 - Press the hotkey again to stop recording and paste into the active field
 - Transcribe speech with OpenAI speech-to-text
 - Polish dictated speech into clean written text
@@ -37,9 +37,9 @@ A Typeless-inspired desktop dictation app built with Electron, React, and OpenAI
 ## Dictation Flow
 
 1. Click into any text field in another app.
-2. Press `Ctrl+Shift+Space`.
+2. Press the left `Alt` key.
 3. Speak while the VoiceCraft pop-up is recording.
-4. Press `Ctrl+Shift+Space` again.
+4. Press the left `Alt` key again.
 5. VoiceCraft transcribes, polishes, hides the pop-up, and pastes the result.
 
 ## Notes
