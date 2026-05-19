@@ -6,7 +6,7 @@
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && node scripts/start-electron.cjs\"",
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && node scripts/start-electron.cjs http://127.0.0.1:5173\"",
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "electron": "node scripts/start-electron.cjs"

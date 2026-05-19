@@ -2,8 +2,8 @@ const { app, BrowserWindow, clipboard, globalShortcut, ipcMain } = require("elec
 const path = require("node:path");
 const fs = require("node:fs");
 
-const isDev = !app.isPackaged;
-const devUrl = "http://127.0.0.1:5173";
+const devUrl = process.env.VOICECRAFT_DEV_SERVER_URL;
+const isDev = Boolean(devUrl);
 
 function loadEnvFile() {
   const envPath = path.join(process.cwd(), ".env");
