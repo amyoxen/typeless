@@ -298,10 +298,18 @@ ipcMain.handle("voicecraft:paste-into-active-app", async (_event, text) => {
 
   await new Promise((resolve, reject) => {
     const command = [
-      "Add-Type @'\nusing System;\nusing System.Runtime.InteropServices;\npublic class Win32 {\n  [DllImport(\"user32.dll\")]\n  public static extern bool SetForegroundWindow(IntPtr hWnd);\n}\n'@",
+      "Add-Type @'\nusing System;\nusing System.Runtime.InteropServices;\npublic class Win32 {\n  [DllImport(\"user32.dll\")]\n  public static extern bool SetForegroundWindow(IntPtr hWnd);\n  [DllImport(\"user32.dll\")]\n  public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);\n  [DllImport(\"user32.dll\")]\n  public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);\n}\n'@",
+      "$KEYEVENTF_KEYUP = 0x0002",
+      "[Win32]::keybd_event(0xA4, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)",
+      "[Win32]::keybd_event(0x12, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)",
+      "[Win32]::keybd_event(0x11, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)",
+      "[Win32]::keybd_event(0x10, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)",
       targetWindowHandle ? `[Win32]::SetForegroundWindow([IntPtr]${targetWindowHandle}) | Out-Null` : "",
+      targetWindowHandle ? `[Win32]::ShowWindow([IntPtr]${targetWindowHandle}, 5) | Out-Null` : "",
       "$ws = New-Object -ComObject WScript.Shell",
-      "Start-Sleep -Milliseconds 260",
+      "Start-Sleep -Milliseconds 450",
+      "$ws.SendKeys('{ESC}')",
+      "Start-Sleep -Milliseconds 80",
       "$ws.SendKeys('^v')"
     ].filter(Boolean).join("; ");
 
