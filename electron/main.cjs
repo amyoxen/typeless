@@ -35,13 +35,14 @@ function loadEnvFile() {
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 560,
-    height: 680,
-    minWidth: 480,
-    minHeight: 560,
-    backgroundColor: "#f7f2ea",
+    width: 160,
+    height: 160,
+    minWidth: 140,
+    minHeight: 140,
+    backgroundColor: "#ffffff",
     title: "VoiceCraft Dictation",
     alwaysOnTop: true,
+    autoHideMenuBar: true,
     skipTaskbar: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -50,6 +51,8 @@ function createWindow() {
       sandbox: false
     }
   });
+
+  win.setMenu(null);
 
   if (isDev) {
     win.loadURL(devUrl);
@@ -292,6 +295,7 @@ ipcMain.handle("voicecraft:polish", async (_event, payload) => {
     "- Remove filler words and false starts.",
     "- Remove unnecessary repetition.",
     "- Preserve the user's meaning and facts.",
+    "- Preserve the spoken language. English should remain English, Chinese should remain Chinese, and mixed English/Chinese should stay mixed naturally.",
     "- Keep names, numbers, punctuation, and formatting natural.",
     "- Do not add information that was not spoken.",
     "- Return only the rewritten text.",

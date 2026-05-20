@@ -1,26 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Clipboard,
-  Eraser,
-  Loader2,
-  Mic,
-  MicOff,
-  RotateCcw,
-  Sparkles,
-  Wand2
-} from "lucide-react";
+import { Loader2, Mic, MicOff } from "lucide-react";
 
-type Tone = "natural" | "professional" | "short" | "friendly" | "email" | "notes";
 type Status = "idle" | "recording" | "transcribing" | "polishing" | "ready" | "error";
-
-const toneOptions: Array<{ value: Tone; label: string }> = [
-  { value: "natural", label: "Natural" },
-  { value: "professional", label: "Professional" },
-  { value: "short", label: "Short" },
-  { value: "friendly", label: "Friendly" },
-  { value: "email", label: "Email" },
-  { value: "notes", label: "Notes" }
-];
 
 function getSupportedMimeType() {
   const candidates = [
@@ -35,17 +16,8 @@ function getSupportedMimeType() {
 
 export function App() {
   const [status, setStatus] = useState<Status>("idle");
-  const [rawText, setRawText] = useState("");
-  const [polishedText, setPolishedText] = useState("");
-  const [tone, setTone] = useState<Tone>("natural");
-  const [vocabulary, setVocabulary] = useState("");
   const [error, setError] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [autoPaste, setAutoPaste] = useState(true);
-  const [shortcutInfo, setShortcutInfo] = useState({
-    shortcut: "Ctrl+Shift+Space",
-    registered: true
-  });
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -64,16 +36,8 @@ export function App() {
     if (status === "polishing") return "Polishing text";
     if (status === "ready") return "Ready";
     if (status === "error") return "Needs attention";
-    return "Idle";
+    return "Start recording";
   }, [elapsedSeconds, status]);
-
-  const reset = useCallback(() => {
-    setRawText("");
-    setPolishedText("");
-    setError("");
-    setStatus("idle");
-    setElapsedSeconds(0);
-  }, []);
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -93,10 +57,7 @@ export function App() {
       });
 
       const transcriptText = transcript.text.trim();
-      setRawText(transcriptText);
-
       if (!transcriptText) {
-        setPolishedText("");
         setStatus("ready");
         await api.finishDictationSession();
         return;
@@ -105,14 +66,12 @@ export function App() {
       setStatus("polishing");
       const polished = await api.polish({
         transcript: transcriptText,
-        tone,
-        vocabulary
+        tone: "natural",
+        vocabulary: ""
       });
 
-      setPolishedText(polished.text);
       setStatus("ready");
-
-      if (autoPaste && polished.text.trim()) {
+      if (polished.text.trim()) {
         await api.pasteIntoActiveApp(polished.text);
       } else {
         await api.finishDictationSession();
@@ -124,15 +83,13 @@ export function App() {
     } finally {
       stopStream();
     }
-  }, [api, stopStream, tone, vocabulary]);
+  }, [api, stopStream]);
 
   const startRecording = useCallback(async () => {
     if (!canUseApp || isBusy || isRecording) return;
 
     try {
       setError("");
-      setRawText("");
-      setPolishedText("");
       setElapsedSeconds(0);
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -177,39 +134,6 @@ export function App() {
     }
   }, [isRecording, startRecording, stopRecording]);
 
-  const polishAgain = useCallback(async () => {
-    if (!api || !rawText.trim()) return;
-    try {
-      setError("");
-      setStatus("polishing");
-      const polished = await api.polish({
-        transcript: rawText,
-        tone,
-        vocabulary
-      });
-      setPolishedText(polished.text);
-      setStatus("ready");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not polish the text.");
-      setStatus("error");
-    }
-  }, [api, rawText, tone, vocabulary]);
-
-  const copyPolished = useCallback(async () => {
-    if (!api || !polishedText.trim()) return;
-    await api.copy(polishedText);
-  }, [api, polishedText]);
-
-  useEffect(() => {
-    if (!api) return;
-    void api.getShortcut().then((info) => {
-      setShortcutInfo({
-        shortcut: info.shortcut.replace("CommandOrControl", "Ctrl"),
-        registered: info.registered
-      });
-    });
-  }, [api]);
-
   useEffect(() => {
     if (!api) return;
     return api.onToggleRecording(toggleRecording);
@@ -231,120 +155,21 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <section className="topbar" aria-label="Application header">
-        <div>
-          <p className="eyebrow">AI voice dictation</p>
-          <h1>VoiceCraft</h1>
-        </div>
-        <div className={`status-pill status-${status}`}>
-          {isBusy ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
-          <span>{statusLabel}</span>
-        </div>
-      </section>
+      <section className="simple-panel" aria-label={statusLabel}>
+        <button
+          className={`record-button ${isRecording ? "recording" : ""}`}
+          onClick={toggleRecording}
+          disabled={!canUseApp || isBusy}
+          title={isRecording ? "Stop recording" : statusLabel}
+          aria-label={isRecording ? "Stop recording" : statusLabel}
+        >
+          {isBusy ? <Loader2 size={34} className="spin" /> : isRecording ? <MicOff size={34} /> : <Mic size={34} />}
+        </button>
 
-      <section className="workspace">
-        <aside className="controls" aria-label="Dictation controls">
-          <button
-            className={`record-button ${isRecording ? "recording" : ""}`}
-            onClick={toggleRecording}
-            disabled={!canUseApp || isBusy}
-            title={isRecording ? "Stop recording" : "Start recording"}
-          >
-            {isRecording ? <MicOff size={34} /> : <Mic size={34} />}
-          </button>
-
-          <div className={`shortcut ${shortcutInfo.registered ? "" : "shortcut-error"}`}>
-            {shortcutInfo.registered ? shortcutInfo.shortcut.replaceAll("+", " + ") : "Hotkey unavailable"}
-          </div>
-
-          <label className="toggle-row" htmlFor="autoPaste">
-            <input
-              id="autoPaste"
-              checked={autoPaste}
-              onChange={(event) => setAutoPaste(event.target.checked)}
-              type="checkbox"
-            />
-            <span>Paste into active field</span>
-          </label>
-
-          <div className="field-group">
-            <label htmlFor="tone">Tone</label>
-            <div className="segmented" id="tone">
-              {toneOptions.map((option) => (
-                <button
-                  key={option.value}
-                  className={tone === option.value ? "active" : ""}
-                  onClick={() => setTone(option.value)}
-                  type="button"
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="vocabulary">Vocabulary</label>
-            <textarea
-              id="vocabulary"
-              value={vocabulary}
-              onChange={(event) => setVocabulary(event.target.value)}
-              placeholder="Names, product terms, acronyms, preferred spellings"
-            />
-          </div>
-
-          <div className="action-row">
-            <button onClick={polishAgain} disabled={!rawText.trim() || isBusy} title="Polish again">
-              <Wand2 size={18} />
-              Polish
-            </button>
-            <button onClick={reset} disabled={isBusy && !isRecording} title="Clear">
-              <Eraser size={18} />
-              Clear
-            </button>
-          </div>
-        </aside>
-
-        <section className="panels" aria-label="Transcription results">
-          {error ? <div className="error-banner">{error}</div> : null}
-          {!canUseApp ? (
-            <div className="error-banner">This app needs to run inside Electron for AI and clipboard access.</div>
-          ) : null}
-
-          <article className="text-panel">
-            <div className="panel-header">
-              <h2>Polished text</h2>
-              <div className="panel-actions">
-                <button onClick={copyPolished} disabled={!polishedText.trim()} title="Copy polished text">
-                  <Clipboard size={18} />
-                  Copy
-                </button>
-                <button onClick={() => setPolishedText(rawText)} disabled={!rawText.trim()} title="Use raw text">
-                  <RotateCcw size={18} />
-                  Raw
-                </button>
-              </div>
-            </div>
-            <textarea
-              className="output polished"
-              value={polishedText}
-              onChange={(event) => setPolishedText(event.target.value)}
-              placeholder="Your cleaned-up dictation will appear here."
-            />
-          </article>
-
-          <article className="text-panel raw-panel">
-            <div className="panel-header">
-              <h2>Raw transcript</h2>
-            </div>
-            <textarea
-              className="output"
-              value={rawText}
-              onChange={(event) => setRawText(event.target.value)}
-              placeholder="The direct speech-to-text transcript appears here."
-            />
-          </article>
-        </section>
+        {error ? <div className="error-banner">{error}</div> : null}
+        {!canUseApp ? (
+          <div className="error-banner">This app needs to run inside Electron for AI and clipboard access.</div>
+        ) : null}
       </section>
     </main>
   );
